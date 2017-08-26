@@ -1,0 +1,182 @@
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.util.Comparator;
+import java.util.TreeSet;
+
+
+public class Main {
+    private static final int MAX_NODES = 10000000;
+    private static int NODES = 0;
+    private static int L[] = new int[MAX_NODES];
+    private static int R[] = new int[MAX_NODES];
+    private static int P[] = new int[MAX_NODES];
+    private static int pow2[] = new int[100001];
+    private static int rem = 1000000007;
+
+    private static int buildtree(int left, int right) {
+        if (left == right) {
+            ++NODES;
+            L[NODES] = R[NODES] = 0;
+            P[NODES] = 0;
+        } else {
+            int mid = (left + right) / 2;
+            int lc = buildtree(left, mid);
+            int rc = buildtree(mid + 1, right);
+            ++NODES;
+            L[NODES] = lc;
+            R[NODES] = rc;
+            P[NODES] = P[lc] + P[rc];
+        }
+        return NODES;
+    }
+
+    private static int updatetree(int nodeid, int lb, int rb, int bit, int value) {
+        if (lb == rb) {
+            ++NODES;
+            L[NODES] = R[NODES] = 0;
+            if (value == 1) {
+                P[NODES] = (P[nodeid] + pow2[bit]) % rem;
+            } else {
+                P[NODES] = (P[nodeid] + rem - pow2[bit]) % rem;
+            }
+        } else {
+            int mid = (lb + rb) / 2;
+            if (lb <= bit && bit <= mid) {
+                int leftnodeid = updatetree(L[nodeid], lb, mid, bit, value);
+                ++NODES;
+                L[NODES] = leftnodeid;
+                R[NODES] = R[nodeid];
+                P[NODES] = (P[L[NODES]] + P[R[NODES]]) % rem;
+            } else {
+                int rightnodeid = updatetree(R[nodeid], mid+1, rb, bit, value);
+                ++NODES;
+                R[NODES] = rightnodeid;
+                L[NODES] = L[nodeid];
+                P[NODES] = (P[L[NODES]] + P[R[NODES]]) % rem;
+            }
+        }
+        return NODES;
+    }
+
+    private static class NodeComparator implements Comparator<Integer> {
+        @Override
+        public int compare(Integer node1, Integer node2) {
+            if (P[node1] == P[node2]) {
+                return 0;
+            }
+            while (L[node1] > 0) {
+                if (P[R[node1]] == P[R[node2]]) {
+                    node1 = L[node1];
+                    node2 = L[node2];
+                } else {
+                    node1 = R[node1];
+                    node2 = R[node2];
+                }
+            }
+            if (P[node1] == 0) {
+                return -1;
+            } else {
+                return 1;
+            }
+        }
+    }
+
+    private static int LCP(int node1, int node2, int lb, int rb) {
+        int N = rb + 1;
+        if (P[node1] == P[node2] || node1 == 0 || node2 == 0) {
+            return N;
+        }
+        while (L[node1] > 0) {
+            int mid = (lb + rb) / 2;
+            if (P[R[node1]] == P[R[node2]]) {
+                rb = mid;
+                node1 = L[node1];
+                node2 = L[node2];
+            } else {
+                lb = mid + 1;
+                node1 = R[node1];
+                node2 = R[node2];
+            }
+        }
+        return N - rb - 1;
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        OutputStreamWriter out = new OutputStreamWriter(System.out);
+        int T = Integer.parseInt(in.readLine());
+
+        pow2[0] = 1;
+        for (int i=1; i<pow2.length; ++i) {
+            pow2[i] = (int)(((long)pow2[i-1] * 2) % rem);
+        }
+
+        for (int ts=1; ts<=T; ++ts) {
+            int N, Q;
+            String line = in.readLine();
+            N = Integer.parseInt(line.split(" ")[0]);
+            Q = Integer.parseInt(line.split(" ")[1]);
+
+            int root = buildtree(0, N-1);
+            TreeSet<Integer> numbers = new TreeSet<Integer>(new NodeComparator());
+            int X[] = new int[N];
+            long ANS = 1;
+//            System.out.println("--- " + root + " " + NODES);
+
+            for (int q=1; q<=Q; ++q) {
+                String query = in.readLine();
+                if (query.charAt(0) == '!') {
+                    int C = Integer.parseInt(query.substring(2));
+                    int RC = C;
+                    while (RC < N && X[RC] == 1) {
+                        RC++;
+                    }
+
+                    if (RC < N) {
+                        X[RC] = 1;
+                        updatetree(NODES, 0, N-1, RC, 1);
+                    }
+                    do {
+                        RC--;
+                        if (RC >= C) {
+                            X[RC] = 0;
+                            updatetree(NODES, 0, N - 1, RC, 0);
+                        }
+                    } while (RC >= C);
+
+                    if (!numbers.contains(NODES)) {
+//                        for (int i=1; i<=NODES; ++i) {
+//                            System.out.println(i + " " + L[i] + " " + R[i] + " " + P[i]);
+//                        }
+//                        System.out.println();
+                        numbers.add(NODES);
+                        Integer ceiling = numbers.higher(NODES);
+                        Integer floor = numbers.lower(NODES);
+                        Integer lcp = 0;
+
+                        if (floor != null) {
+                            lcp = Integer.max(lcp, LCP(NODES, floor, 0, N-1));
+                        }
+                        if (ceiling != null) {
+                            lcp = Integer.max(lcp, LCP(NODES, ceiling, 0, N-1));
+                        }
+
+                        ANS = ANS + (long)(N - lcp);
+
+                    }
+                } else {
+                    out.write(ANS + "\n");
+                }
+            }
+
+        }
+
+
+
+        in.close();
+        out.close();
+
+    }
+}

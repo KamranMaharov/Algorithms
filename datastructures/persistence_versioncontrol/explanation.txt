@@ -1,0 +1,33 @@
+This problem is from CodeChef's August 2017 Long contest.
+
+Problem statement is very interesting and requires quite a thought
+to precisely understand it and start analyzing.
+
+Basically, what we have is N-layered complete binary tree.
+Each distinct natural number with N bits, corresponds to different paths from root
+to the leaf node in this tree.
+
+At any given time we have a natural number X.
+There are update queries to update value of X, (in the form of X + 2^C).
+Also we have read queries, to determine how many nodes have been visited so far.
+(For all of the values of X so far, cumulatively).
+
+First of all, we should build segment tree for an array of N bits.
+We can obviously represent the given number X, using this tree.
+Challenge is to represent all the values of X, given in the input.
+Well, what about version control?
+
+It is very easy, according to the Golden Rule of persistence data structures:
+GOLDEN RULE OF PERSISTENCE
+Create new nodes instead of changing them.
+(https://discuss.codechef.com/questions/101647/persistence-made-simple-tutorial)
+
+We are creating nodes as needed, to represent some interval [a, b] from bitwise representation of X
+at any time.
+
+This way, we will create at most Q * log(N) number of nodes during Q number of update queries;
+This is ok for the problem constraints.
+
+To solve the problem, we need to calculate how many "new" nodes does current X contributes to the total.
+To get this value, we should get the upper and lower values of current X, using balance binary search tree, built on top
+of segment tree feature above. I used TreeSet from Java8 API for this purpose.
